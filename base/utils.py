@@ -148,6 +148,7 @@ class PoltData(Worker):
             self.ax.plot(self.dict_data[k], label=k)
         # self.ax.legend()
         plt.pause(0.0001)
+        print('dra')
 
 
 if __name__ == '__main__':

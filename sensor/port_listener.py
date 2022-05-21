@@ -1,3 +1,5 @@
+import time
+
 import serial
 
 from base.model import Worker, Frame
@@ -6,18 +8,28 @@ from base.model import Worker, Frame
 class PortListener(Worker):
     def __init__(self, name, port: str = 'com11', baud_rate: int = 115200, timeout: float = 1):
         super().__init__(name)
+        self.ser = None
+        self.port = port
+        self.baud_rate = baud_rate
+        self.timeout = timeout
+
+    def first_process(self, frame: Frame):
         try:
-            self.ser = serial.Serial(port, baud_rate, timeout=timeout)
-            print('串口：{}启动成功!'.format(port))
+            self.ser = serial.Serial(self.port, self.baud_rate, timeout=self.timeout)
+            print('串口：{}启动成功!'.format(self.port))
         except serial.SerialException:
-            print('串口：{}启动失败，请检测设备开关是否打开，{}模块暂时关闭'.format(port, self.name))
+            print('串口：{}启动失败，请检测设备开关是否打开，{}模块暂时关闭'.format(self.port, self.name))
             self.switch = False
             self.ser = None
-            # self.ser.timeout = 0.005
+            self.first = True
+            time.sleep(1)
+            return frame
+        return frame
 
     def process(self, frame: Frame):
         data = self.ser.read(33)
         frame.data['{}_data'.format(self.name)] = data
+        # print('listener:{}'.format(frame))
         return frame
 
 

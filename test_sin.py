@@ -13,7 +13,7 @@ class Sin(Worker):
     def process(self, frame: Frame):
         frame.data['sin'] = np.sin(self.i)
         print(frame.data['sin'])
-        self.i += 0.1
+        self.i += 0.3
 
         frame.info['_PLOT']['sin'] = frame.data['sin']
 
@@ -45,8 +45,8 @@ class Abs(Worker):
 task = DotSet([
     Dot('dot0', subsequents=['dot1'], worker=Source()),
     Dot('dot1', subsequents=['dot2', 'dot5'], worker=Sin('sin')),
-    Dot('dot2', subsequents=['dot3', 'dot4']),
-    Dot('dot3'),
+    Dot('dot2', subsequents=['dot3', 'dot4'], worker=Abs('abs')),
+    Dot('dot3', worker=PrintData('sin')),
     Dot('dot4', worker=PoltData('plot')),
     Dot('dot5'),
 ])
