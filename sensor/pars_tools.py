@@ -145,13 +145,18 @@ def DueData(inputdata):  # 新增的核心程序，对读取的数据进行划�
 
 
 class BWT901CL(Worker):
-    def __init__(self, name: str = 'bwt901cl'):
+    """
+    BWT901CL解析工具
+    """
+    def __init__(self, name: str = 'bwt901cl', port: str = 'com11'):
         super().__init__(name)
+        self.port = port
 
     def process(self, frame: Frame):
-        if 'bwt901cl_listener_data' not in frame.data.keys():
+        if self.port not in frame.data.keys():
+            # print('没有数据')
             return frame
-        inputs = frame.data['bwt901cl_listener_data']
+        inputs = frame.data[self.port]
         data = DueData(inputs)
         if data is None:
             return frame
@@ -180,7 +185,7 @@ class BWT901CL(Worker):
 if __name__ == '__main__':
     from base.model import Dot, DotSet
     from base.utils import Source, PrintData, Save, Load, PoltData
-    from sensor.port_listener import PortListener
+    from sensor.connect_tools import PortListener
     task = DotSet(dots=[
         Dot('head', subsequents=['bwt901cl_listener'], worker=Source()),
         # Dot(worker=Load('load', './output', reappear=True), subsequents=['bwt'], ),

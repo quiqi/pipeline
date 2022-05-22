@@ -74,9 +74,9 @@ class Worker(Model):
         """
         当组件第一次运行时被调用，一般用于运行时的准备工作，比如网络连接、设备连接、文件夹创建等
         :param frame: 帧数据
-        :return: 修改后的帧数据
+        :return: 是否初始化成功
         """
-        return frame
+        return True
         pass
 
     def pre_process(self, frame: Frame):
@@ -110,23 +110,45 @@ class Worker(Model):
         :return: 修改后的帧数据
         """
         if self.first:  # 如果时第一次运行
-            self.first = False      # 将 self.first 设为 False
-            print('worker:{} has been invoked.'.format(self.name))
-            frame = self.first_process(frame)   # 运行 first_process，在用户重写时，可以将 self.first 重新设为 True
+            succeed = self.first_process(frame)   # 运行 first_process，返回是否初始化成功
+
+            if succeed:     # 如果初始化成功
+                self.first = False      # 将 self.first 设为 False
+                self.switch = True      # 启动处理程序
+            else:           # 如果不成功
+                self.first = True       # 重新运行 first_process
+                self.switch = False     # 且暂时关闭组件
         if not self.switch:     # 如果组件开关关闭，则直接返回 传入的 frame
             return frame
 
-        frame = self.pre_process(frame)     # 前处理调用
-        frame = self.process(frame)         # 处理调用
-        frame = self.after_process(frame)   # 后处理调用
-        return frame    # 返回处理后的帧
+        try:
+            t_frame = self.pre_process(frame)  # 前处理调用
+            t_frame = self.process(t_frame)  # 处理调用
+            t_frame = self.after_process(t_frame)  # 后处理调用
+            if t_frame is None:     # 如果 t_frame 为空
+                print('function named "run" of module:{} return None.'
+                      'This may be caused by function of process(pre_process/after_process/process) '
+                      'forgetting to write a return, please check your code.'.format(self.name))
+                return frame        # 返回修改前的 frame
+            else:
+                return t_frame      # 否则返回修改后的 frame
+        except Exception as e:      # 如果在运行中出现异常
+            print('e')              # 打印异常和提示信息
+            print('function named "run" of module:{} return None.'
+                  'This may be caused by function of process'
+                  '(pre_process/after_process/first_process) forgetting to write a return, '
+                  'please check your code, the module is temporarily closed.'.format(self.name))
+            self.switch = False     # 关闭组件
+            self.first = True       # 让组件重新初始化
+            return frame    # 返回处理后的帧
 
 
 class WorkerSet(Worker):
     """
     用于完成worker的线性合作
     """
-    def __int__(self, workers: list):
+    def __init__(self, name: str, workers: list):
+        super(WorkerSet, self).__init__(name)
         ex = Exception('elements in workers have to the type of Worker!')
         for work in workers:    # 检查传入的 list中的每一个元素是否都是一个 worker 类的对象
             if not isinstance(work, Worker):
@@ -181,25 +203,7 @@ class Dot(Model):
 
     def process(self, frame: Frame):
         if self.worker is not None:     # 如果Dot被指定工作，则执行worker的run
-            try:
-                worker_frame = self.worker.run(frame)
-                self.worker.switch = True
-            except Exception as e:      # 捕获worker的错误，增强代码的健壮性
-                print(e)                # 打印错误
-                print('function named "run" of module:{}. '     # 输出提示
-                      'Check your code in functions of process, pre_process and after_process, '
-                      'and this module was temporarily disabled'.format(self.worker.name))
-                self.worker.switch = False  # 当出现错误时关闭worker
-                worker_frame = frame        # 相当传回未被修改的帧
-
-            if worker_frame is None:        # 如果worker返回的是空数据，打印提示信息
-                print('function named "run" of module:{} return None.'
-                      'This may be caused by function of process'
-                      '(pre_process/after_process/first_process) forgetting to write a return, '
-                      'please check your code, the module is temporarily closed.'.format(self.worker.name))
-                self.worker.switch = False
-            else:
-                frame = worker_frame        # 将frame赋值为worker_frame继续执行
+            frame = self.worker.run(frame)
 
         if len(self.subsequents) != 0:      # 如果有后继节点，则调用send函数发送
             frames = self.send(frame)
