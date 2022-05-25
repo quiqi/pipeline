@@ -75,13 +75,15 @@ class Load(Worker):
         self.base_time = None
         self.start_time = None
         if not os.path.exists(os.path.join(load_path, 'save_info.txt')):
-            print('没有找到save_info.txt文件，{}组件将在发送结束帧后自动关闭。')
+            print('Unable to find file save_info.txt in directory {}, '
+                  '{} will automatically shut down after sending end frame.'.format(load_path, self.name))
             self.close = True
-        with open(os.path.join(load_path, 'save_info.txt'), 'r') as f:
-            line = f.readline()
-            while line:
-                self.data_path.append(line[:-1])
+        else:
+            with open(os.path.join(load_path, 'save_info.txt'), 'r') as f:
                 line = f.readline()
+                while line:
+                    self.data_path.append(line[:-1])
+                    line = f.readline()
 
     def process(self, frame: Frame):
         if self.close:
@@ -148,7 +150,18 @@ class PoltData(Worker):
             self.ax.plot(self.dict_data[k], label=k)
         # self.ax.legend()
         plt.pause(0.0001)
-        print('dra')
+        # print('dra')
+
+
+class MuLoad(Worker):
+    """
+    多文件同步读取
+    """
+    def __init__(self, name, load_paths: list):
+        super().__init__(name)
+        fps = []
+        for i in load_paths:
+            pass
 
 
 if __name__ == '__main__':

@@ -2,9 +2,23 @@ import multiprocessing
 import typing
 
 import base.model as model
+import base.utils
 import base.utils as utils
 
 import numpy as np
+
+
+class MulSource(base.utils.Source):
+    def __init__(self):
+        super().__init__(name='_MulSource')
+
+    def after_process(self, frame: base.model.Frame):
+        """
+        用于阻塞进程
+        :param frame:
+        :return:
+        """
+        return frame
 
 
 class Mulignition:
@@ -35,7 +49,7 @@ class Mulignition:
         if len(self.source) == 0:
             self.source.append(dots[0].name)
         # 加入源头进程，一切的数据包都来源于源头进程
-        source_dot = model.Dot('_SOURCE', subsequents=self.source, worker=utils.Source())
+        source_dot = model.Dot('_SOURCE', subsequents=self.source, worker=MulSource())
         p = Mulignition.MulDot(source_dot, self.pipes)
         p.start()
         self.process_list['_SOURCE'] = p

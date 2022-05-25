@@ -1,13 +1,13 @@
 from base.model import Worker, Frame
 from sensor.pars_tools import BWT901CL
-from sensor.connect_tools import PortListener, WebCamera
+from sensor.connect_tools import PortConnect, WebCamera
 
 
 # 9轴传感器数据接口
 class BWT901CLInput(Worker):
     def __init__(self, name: str = 'BWT901CLInput', port: str = 'cmd11'):
         super().__init__(name)
-        self.pl = PortListener('bwt901cl_listener_{}'.format(port))
+        self.pl = PortConnect('bwt901cl_listener_{}'.format(port), port=port)
         self.dp = BWT901CL('bwt901cl_pars_{}'.format(port), port=port)
 
     def process(self, frame: Frame):

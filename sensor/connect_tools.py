@@ -7,7 +7,41 @@ import numpy as np
 from base.model import Worker, Frame
 
 
-class PortListener(Worker):
+class ConnectWorker(Worker):
+    """
+    连接类
+    """
+    def __init__(self, name):
+        super().__init__(name)
+        self.state = False    # 状态分为监听状态 “Listening”（False） 和读取状态 “r、Reading”（True）
+
+    def listening(self):
+        """
+        监听状态
+        :return: 监听结果，如果监听到对应传感器的信号并成功连接则返回真，否则返回假
+        """
+        return False
+
+    def reading(self, frame: Frame):
+        return Frame
+
+    def process(self, frame: Frame):
+        if self.state:      # 如果为读取状态
+            try:
+                frame = self.reading(frame)
+            except Exception as e:      # 如果在读取中出错
+                print(e)                # 打印出错信息
+        else:               # 如果为监听状态
+            try:
+                c = self.listening()        # 进行监听
+                if c is True:
+                    self.state = True       # 如果连接成功则设置 self.state 为真
+            except Exception as e:
+                print(e)                # 打印出错信息
+        return frame
+
+
+class PortConnect(ConnectWorker):
     """
     串口连接工具
     """
@@ -23,69 +57,82 @@ class PortListener(Worker):
         self.interval = interval
         self.last_time = time.time() + self.interval    # 第一次连接时默认不等待时间间隔
 
-    def first_process(self, frame: Frame):
+    def listening(self):
         try:
-            if time.time() - self.last_time < self.interval:    # 每秒连接一次
+            if time.time() - self.last_time < self.interval:    # 每 self.interval 秒连接一次
                 return False
             else:
                 self.last_time = time.time()    # 重置链接时间
                 self.ser = serial.Serial(self.port, self.baud_rate, timeout=self.timeout)   # 尝试连接
-                print('串口：{}启动成功!'.format(self.port))   # 连接成功
+                print('串口：{}连接成功!'.format(self.port))   # 连接成功
                 self.off_line = 0   # 将self.off_line置为零
                 return True
-        except serial.SerialException:
-            print('串口：{}启动失败，请检测设备开关是否打开，{}模块暂时关闭'.format(self.port, self.name))
-            self.switch = False
+        except serial.SerialException as e:
+            print(e)
+            print('{}模块没有监听到 串口：{} 的数据，请检测设备开关是否打开，将在{}s后继续监听'.format(self.name, self.port, self.interval))
             self.ser = None
-            self.first = True
-            time.sleep(1)
             return False
 
-    def process(self, frame: Frame):
-        data = self.ser.read(self.read_size)
-        if len(data) < self.read_size:
-            self.off_line += 1
-            if self.off_line > 10:
-                self.ser.close()
-                self.first = True
-        frame.data[self.port] = data
-        # print('listener:{}'.format(frame))
+    def reading(self, frame: Frame):
+        try:
+            data = self.ser.read(self.read_size)    # 常数从串口读取数据
+            if len(data) < self.read_size:          # 如果读取到的数据长度小于设定长度
+                self.off_line += 1                  # 认为设备离线
+                print('设备第{}次离线'.format(self.off_line))
+                if self.off_line >= 3:               # 如果设备连续离线三次，则关闭设备重新连接
+                    print('设备离线三次，正在关闭连接并尝试重新连接...')
+                    self.ser.close()                # 关闭连接
+                    self.state = False              # 设置为连接模式
+            frame.data[self.port] = data            # 否则写入数据，数据名为串口号
+        except Exception as e:      # 差错处理
+            print(e)
+
         return frame
 
-    def __del__(self):
-        self.ser.close()
 
-
-class WebCamera(Worker):
-    def __init__(self, name, url: str, interval: float = 1):
+class WebCamera(ConnectWorker):
+    def __init__(self, name, url: str, interval: float = 1, scaling: float = 0.25):
         super().__init__(name)
         self.url = url
         self.camera = None
         self.interval = interval
         self.last_time = time.time() + self.interval
+        self.scaling = scaling
+        self.off_line = 0
 
-    def first_process(self, frame: Frame):
+    def listening(self):
         try:        # 尝试连接摄像头
-            if time.time() - self.last_time < self.interval:
+            if time.time() - self.last_time < self.interval:    # 每 self.interval 秒连接一次
                 return False
-            print('Try to connect the camera...')
+            print('正在尝试连接摄像头...')
             self.camera = cv2.VideoCapture(self.url)
             if not self.camera.isOpened():
                 self.camera.release()
+                print('模块{}：摄像头{}连接失败，将在{}s后重新连接'.format(self.name, self.url, self.interval))
                 return False    # 如果该摄像头没打开，表示连接失败
             else:
-                print('connect the camera succeed!')
+                print('摄像头连接成功!')
                 return True     # 否则连接成功
         except Exception as e:  # 异常处理
             print(e)            # 打印异常信息
             return False        # 返回连接失败
 
-    def process(self, frame: Frame):
-        ret, img = self.camera.read()
-        frame.data['img'] = img
-        img = cv2.resize(img, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
-        cv2.imshow('img:{}'.format(self.name), img)
-        cv2.waitKey(1)
+    def reading(self, frame: Frame):
+        try:
+            ret, img = self.camera.read()
+            if ret:
+                img = cv2.resize(img, (0, 0), fx=self.scaling, fy=self.scaling, interpolation=cv2.INTER_AREA)
+                frame.data['img'] = img
+            else:
+                self.off_line += 1
+                print('模块{}：摄像头{}第{}次读取失败'.format(self.name, self.url, self.off_line))
+                if self.off_line > 10:
+                    print('设备离线三次，正在关闭连接并尝试重新连接...')
+                    self.camera.release()   # 关闭连接
+                    self.state = False      # 设置为连接模式
+        except Exception as e:
+            print(e)
+
         return frame
 
 

@@ -172,13 +172,6 @@ class BWT901CL(Worker):
             'angle_z': data[8]
         }
         frame.data['9_axis_tuple'] = data
-        # print(frame.data['9_axis_tuple'])
-        i = 0
-        for k in frame.data['9_axis_dict']:
-            frame.info['_PLOT'][k] = frame.data['9_axis_dict'][k]
-            i += 1
-            if i == 3:
-                break
         return frame
 
 

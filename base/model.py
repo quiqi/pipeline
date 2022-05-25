@@ -68,16 +68,6 @@ class Worker(Model):
         super().__init__(name)
         print('worker:{} staring...'.format(self.name))
         self.switch = True      # 组件开关，当self.switch = False 时，组件功能关闭
-        self.first = True       # 表示组件是否是第一次运行，当第一运行开始时，将会被设置为 False，但用户可以在first_process中重新设置为True
-
-    def first_process(self, frame: Frame):
-        """
-        当组件第一次运行时被调用，一般用于运行时的准备工作，比如网络连接、设备连接、文件夹创建等
-        :param frame: 帧数据
-        :return: 是否初始化成功
-        """
-        return True
-        pass
 
     def pre_process(self, frame: Frame):
         """
@@ -109,18 +99,11 @@ class Worker(Model):
         :param frame: 帧数据
         :return: 修改后的帧数据
         """
-        if self.first:  # 如果时第一次运行
-            succeed = self.first_process(frame)   # 运行 first_process，返回是否初始化成功
-
-            if succeed:     # 如果初始化成功
-                self.first = False      # 将 self.first 设为 False
-                self.switch = True      # 启动处理程序
-            else:           # 如果不成功
-                self.first = True       # 重新运行 first_process
-                self.switch = False     # 且暂时关闭组件
+        # 锁
         if not self.switch:     # 如果组件开关关闭，则直接返回 传入的 frame
             return frame
 
+        # 模块处理和异常处理
         try:
             t_frame = self.pre_process(frame)  # 前处理调用
             t_frame = self.process(t_frame)  # 处理调用
@@ -133,11 +116,9 @@ class Worker(Model):
             else:
                 return t_frame      # 否则返回修改后的 frame
         except Exception as e:      # 如果在运行中出现异常
-            print('e')              # 打印异常和提示信息
-            print('function named "run" of module:{} return None.'
-                  'This may be caused by function of process'
-                  '(pre_process/after_process/first_process) forgetting to write a return, '
-                  'please check your code, the module is temporarily closed.'.format(self.name))
+            print(e)              # 打印异常和提示信息
+            print('function named "run" of module:{} is abnormal.'
+                  'Reinitialization is being attempted'.format(self.name))
             self.switch = False     # 关闭组件
             self.first = True       # 让组件重新初始化
             return frame    # 返回处理后的帧
@@ -162,7 +143,7 @@ class WorkerSet(Worker):
         :return: 处理后的帧序列
         """
         for worker in self.workers:     # 依次调用 workers 中组件的run
-            frame = self.run(frame)
+            frame = worker.run(frame)
         return frame
 
 
