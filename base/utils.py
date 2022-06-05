@@ -1,6 +1,6 @@
 import os.path
 
-from base.model import *
+from base.core import *
 import time
 import pickle
 from collections import deque
@@ -129,7 +129,7 @@ class PrintData(Worker):
 
 
 class PoltData(Worker):
-    def __init__(self, name, length: int = 50):
+    def __init__(self, name, length: int = 50, contents: list = None):
         super().__init__(name)
         self.dict_data = {}
         self.length = length
@@ -153,29 +153,18 @@ class PoltData(Worker):
         # print('dra')
 
 
-class MuLoad(Worker):
-    """
-    多文件同步读取
-    """
-    def __init__(self, name, load_paths: list):
-        super().__init__(name)
-        fps = []
-        for i in load_paths:
-            pass
-
-
 if __name__ == '__main__':
     dots = [
-        Dot('dot0', ['dot1', 'dot2', 'dot3'], send_mod='copy', worker=Source()),
-        Dot('dot1', ['dot2']),
-        Dot('dot2')
+        Node('dot0', ['dot1', 'dot2', 'dot3'], send_mod='copy', worker=Source()),
+        Node('dot1', ['dot2']),
+        Node('dot2')
     ]
     dots2 = [
-        DotSet(dots),
-        Dot('dot3', worker=Save('dot3', save_path='output'))
+        NodeSet(dots),
+        Node('dot3', worker=Save('dot3', save_path='output'))
     ]
     for i in range(100):
-        DotSet(dots2).run(Frame(None, 'dot0'))
+        NodeSet(dots2).run(Frame(None, 'dot0'))
     pass
 
 

@@ -1,4 +1,4 @@
-from base.model import Worker, Frame
+from base.core import Worker, Frame
 
 
 ACCData=[0.0]*8
@@ -176,17 +176,17 @@ class BWT901CL(Worker):
 
 
 if __name__ == '__main__':
-    from base.model import Dot, DotSet
+    from base.core import Node, NodeSet
     from base.utils import Source, PrintData, Save, Load, PoltData
     from sensor.connect_tools import PortListener
-    task = DotSet(dots=[
-        Dot('head', subsequents=['bwt901cl_listener'], worker=Source()),
-        # Dot(worker=Load('load', './output', reappear=True), subsequents=['bwt'], ),
-        Dot(worker=PortListener('bwt901cl_listener'), subsequents=['bwt'], send_mod='copy'),
-        Dot(worker=BWT901CL('bwt'), subsequents=['plot', 'print']),
-        Dot(worker=PrintData('print', ['9_axis_dict'])),
-        Dot(worker=PoltData('plot'))
-        # Dot(worker=Save('save'))
+    task = NodeSet(dots=[
+        Node('head', subsequents=['bwt901cl_listener'], worker=Source()),
+        # Node(worker=Load('load', './output', reappear=True), subsequents=['bwt'], ),
+        Node(worker=PortListener('bwt901cl_listener'), subsequents=['bwt'], send_mod='copy'),
+        Node(worker=BWT901CL('bwt'), subsequents=['plot', 'print']),
+        Node(worker=PrintData('print', ['9_axis_dict'])),
+        Node(worker=PoltData('plot'))
+        # Node(worker=Save('save'))
     ])
     while task.switch:
         task.run(Frame(end='head'))

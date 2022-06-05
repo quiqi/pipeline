@@ -1,4 +1,4 @@
-from base.model import Worker, Frame
+from base.core import Worker, Frame
 from sensor.pars_tools import BWT901CL
 from sensor.connect_tools import PortConnect, WebCamera
 

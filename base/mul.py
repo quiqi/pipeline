@@ -1,18 +1,15 @@
 import multiprocessing
 import typing
 
-import base.model as model
+import base.core
 import base.utils
-import base.utils as utils
-
-import numpy as np
 
 
 class MulSource(base.utils.Source):
     def __init__(self):
         super().__init__(name='_MulSource')
 
-    def after_process(self, frame: base.model.Frame):
+    def after_process(self, frame: base.core.Frame):
         """
         用于阻塞进程
         :param frame:
@@ -21,8 +18,8 @@ class MulSource(base.utils.Source):
         return frame
 
 
-class Mulignition:
-    def __init__(self, dots: typing.List[model.Dot], queue_size: int = 10):
+class MulIgnition:
+    def __init__(self, dots: typing.List[base.core.Node], queue_size: int = 10):
         if len(dots) == 0:
             raise Exception('Please include at least one dot in dots')
 
@@ -49,14 +46,14 @@ class Mulignition:
         if len(self.source) == 0:
             self.source.append(dots[0].name)
         # 加入源头进程，一切的数据包都来源于源头进程
-        source_dot = model.Dot('_SOURCE', subsequents=self.source, worker=MulSource())
-        p = Mulignition.MulDot(source_dot, self.pipes)
+        source_dot = base.core.Node('_SOURCE', subsequents=self.source, worker=MulSource())
+        p = MulIgnition.MulDot(source_dot, self.pipes)
         p.start()
         self.process_list['_SOURCE'] = p
 
         # 初始化进程
         for dot in dots:
-            p = Mulignition.MulDot(dot, self.pipes)
+            p = MulIgnition.MulDot(dot, self.pipes)
             p.start()
             self.process_list[dot.name] = p  # 为当前进程创造进程对象
 
@@ -65,15 +62,15 @@ class Mulignition:
             self.process_list[process].join()
 
     class MulDot(multiprocessing.Process):
-        def __init__(self, dot: model.Dot, pipes: dict):
-            super(Mulignition.MulDot, self).__init__(name=dot.name)
+        def __init__(self, dot: base.core.Node, pipes: dict):
+            super(MulIgnition.MulDot, self).__init__(name=dot.name)
             self.dot = dot
             self.pipes = pipes
 
         def run(self):
             if self.dot.name == '_SOURCE':  # 如果是源头节点，则自己生成数据
                 while self.dot.switch:
-                    frames = self.dot.run(model.Frame(end='_SOURCE'))
+                    frames = self.dot.run(base.core.Frame(end='_SOURCE'))
                     # print('s:{}'.format(frames[0].end))
                     for frame in frames:
                         if frame.end in self.pipes.keys():  # 安全检查，检查frame当前帧的目的地是否有对应的管道

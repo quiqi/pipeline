@@ -4,7 +4,7 @@ import serial
 import cv2
 import numpy as np
 
-from base.model import Worker, Frame
+from base.core import Worker, Frame
 
 
 class ConnectWorker(Worker):
@@ -123,6 +123,8 @@ class WebCamera(ConnectWorker):
             if ret:
                 img = cv2.resize(img, (0, 0), fx=self.scaling, fy=self.scaling, interpolation=cv2.INTER_AREA)
                 frame.data['img'] = img
+                cv2.imshow('img', img)
+                cv2.waitKey(1)
             else:
                 self.off_line += 1
                 print('模块{}：摄像头{}第{}次读取失败'.format(self.name, self.url, self.off_line))
@@ -137,22 +139,22 @@ class WebCamera(ConnectWorker):
 
 
 if __name__ == '__main__':
-    from base.model import Dot, DotSet
+    from base.core import Node, NodeSet
     from base.utils import Source, PrintData, Save, PoltData
-    from base.muldot import Mulignition
+    from base.mul import MulIgnition
     from sensor.sensors import get_web_camera_input
     from pars_tools import BWT901CL
-    wc1 = Dot('dot1', worker=get_web_camera_input('a'), source='dot1')    # 卧室
-    wc2 = Dot('dot2', worker=WebCamera('web_camera2', 'rtsp://admin:a1234567@192.168.111.8:554/stream1'), source='dot2')    # 客厅
-    wc3 = Dot('dot3', worker=WebCamera('web_camera3', 'rtsp://admin:a1234567@192.168.111.6:554/stream1'), source='dot3')    # 教室
-    Mulignition([wc1, wc2, wc3]).run()
+    wc1 = Node('dot1', worker=get_web_camera_input('bed_room'), source='dot1')    # 卧室
+    wc2 = Node('dot2', worker=WebCamera('web_camera2', 'rtsp://admin:a1234567@192.168.111.8:554/stream1'), source='dot2')    # 客厅
+    wc3 = Node('dot3', worker=WebCamera('web_camera3', 'rtsp://admin:a1234567@192.168.111.6:554/stream1'), source='dot3')    # 教室
+    MulIgnition([wc1, wc2, wc3]).run()
 
-    # task = DotSet(dots=[
-    #     Dot('head', subsequents=['bwt901cl_listener'], worker=Source()),
-    #     Dot(worker=PortListener('bwt901cl_listener', port='com11'), subsequents=['bwt', 'save'], send_mod='copy'),
-    #     Dot(worker=BWT901CL('bwt'), subsequents=['print']),
-    #     # Dot(worker=PrintData('print', ['bwt901cl_listener_data'])),
-    #     # Dot(worker=Save('save'))
+    # task = NodeSet(dots=[
+    #     Node('head', subsequents=['bwt901cl_listener'], worker=Source()),
+    #     Node(worker=PortListener('bwt901cl_listener', port='com11'), subsequents=['bwt', 'save'], send_mod='copy'),
+    #     Node(worker=BWT901CL('bwt'), subsequents=['print']),
+    #     # Node(worker=PrintData('print', ['bwt901cl_listener_data'])),
+    #     # Node(worker=Save('save'))
     # ])
     #
     # for i in range(100):

@@ -1,8 +1,8 @@
-import base.model as model
+import base.core as model
 import base.utils as utils
-from base.model import *
+from base.core import *
 from base.utils import *
-from base.muldot import *
+from base.mul import *
 import numpy as np
 
 
@@ -33,11 +33,11 @@ class Abs(model.Worker):
 
 if __name__ == '__main__':
 
-    dot1 = Dot('dot0', subsequents=['dot1'])
-    dot2 = DotSet([
-        Dot('dot1', subsequents=['dot2'], worker=Sin('sin')),
-        Dot('dot2', subsequents=['dot3'], worker=Abs('abs'))
+    dot1 = Node('dot0', subsequents=['dot1'])
+    dot2 = NodeSet([
+        Node('dot1', subsequents=['dot2'], worker=Sin('sin')),
+        Node('dot2', subsequents=['dot3'], worker=Abs('abs'))
     ])
-    dot3 = Dot('dot3', worker=PrintData(contents=['sin']))
+    dot3 = Node('dot3', worker=PrintData(contents=['sin']))
 
-    Mulignition([dot1, dot2, dot3]).run()
+    MulIgnition([dot1, dot2, dot3]).run()

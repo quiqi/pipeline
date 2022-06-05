@@ -1,4 +1,4 @@
-from base.model import *
+from base.core import *
 from base.utils import *
 from sensor.connect_tools import *
 from sensor.pars_tools import *
@@ -32,23 +32,23 @@ class Abs(Worker):
 
 
 # test0中的框架
-# task = DotSet([
-#     Dot('dot0', subsequents=['dot1']),
-#     Dot('dot1', subsequents=['dot2', 'dot5']),
-#     Dot('dot2', subsequents=['dot3', 'dot4']),
-#     Dot('dot3'),
-#     Dot('dot4'),
-#     Dot('dot5'),
+# task = NodeSet([
+#     Node('dot0', subsequents=['dot1']),
+#     Node('dot1', subsequents=['dot2', 'dot5']),
+#     Node('dot2', subsequents=['dot3', 'dot4']),
+#     Node('dot3'),
+#     Node('dot4'),
+#     Node('dot5'),
 # ])
 
 
-task = DotSet([
-    Dot('dot0', subsequents=['dot1'], worker=Source()),
-    Dot('dot1', subsequents=['dot2', 'dot5'], worker=Sin('sin')),
-    Dot('dot2', subsequents=['dot3', 'dot4'], worker=Abs('abs')),
-    Dot('dot3', worker=PrintData('sin')),
-    Dot('dot4', worker=PoltData('plot')),
-    Dot('dot5'),
+task = NodeSet([
+    Node('dot0', subsequents=['dot1'], worker=Source()),
+    Node('dot1', subsequents=['dot2', 'dot5'], worker=Sin('sin')),
+    Node('dot2', subsequents=['dot3', 'dot4'], worker=Abs('abs')),
+    Node('dot3', worker=PrintData('sin')),
+    Node('dot4', worker=PoltData('plot')),
+    Node('dot5'),
 ])
 
 

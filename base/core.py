@@ -41,7 +41,7 @@ class Frame:
 
 class Model:
     """
-    Worker 和 Dot 的父类，暂时什么用也没有，仅为后续可能的拓展留下余地
+    Worker 和 Node 的父类，暂时什么用也没有，仅为后续可能的拓展留下余地
     """
     def __init__(self, name):
         self.name = name    # model的名字
@@ -53,7 +53,7 @@ class Model:
 
     def run(self, frame: Frame):
         """
-        在 Worker 和 Dot 中重写，该函数重来没有被运行
+        在 Worker 和 Node 中重写，该函数重来没有被运行
         :param frame:
         :return:
         """
@@ -119,9 +119,7 @@ class Worker(Model):
             print(e)              # 打印异常和提示信息
             print('function named "run" of module:{} is abnormal.'
                   'Reinitialization is being attempted'.format(self.name))
-            self.switch = False     # 关闭组件
-            self.first = True       # 让组件重新初始化
-            return frame    # 返回处理后的帧
+            return frame    # 返回处理前的帧
 
 
 class WorkerSet(Worker):
@@ -147,7 +145,7 @@ class WorkerSet(Worker):
         return frame
 
 
-class Dot(Model):
+class Node(Model):
     """
     用于完成worker的网状合作
     """
@@ -216,7 +214,7 @@ class Dot(Model):
         return frames
 
 
-class DotSet(Dot):
+class NodeSet(Node):
     """
     Dot的子类，Dot列表（也就是一张图）的容器和启动器，也可以当作Dot放入另一个DotSet套娃。
     """
@@ -231,9 +229,9 @@ class DotSet(Dot):
         ex1 = Exception('elements in workers have to the Worker!')
         ex2 = Exception('can not have two dot with the same name!')
         for dot in dots:
-            if not isinstance(dot, Dot):        # 检查dots中的每一个元素是否都是Dot类的对象
+            if not isinstance(dot, Node):        # 检查dots中的每一个元素是否都是Dot类的对象
                 raise ex1
-            if dot.name in self.dots.keys():    # 检查是否有重名的 Dot 对象
+            if dot.name in self.dots.keys():    # 检查是否有重名的 Node 对象
                 raise ex2
             self.dots[dot.name] = dot           # 将dot字典化，加快查找速度
 
@@ -260,7 +258,7 @@ class DotSet(Dot):
 
             # 控制信息处理
             for c in frame.ctrl:
-                if c == '_CLOSE':   # 如果在控制信息中出现 _CLOSE 就关闭当前 DotSet，但仍会执行完下面的部分
+                if c == '_CLOSE':   # 如果在控制信息中出现 _CLOSE 就关闭当前 NodeSet，但仍会执行完下面的部分
                     self.switch = False   
             
             # 如果当前需要发送的节点没有在DotSet中，则将该节点放入 finish中
@@ -282,16 +280,16 @@ class DotSet(Dot):
 
 if __name__ == '__main__':
     dots = [
-        Dot('dot0', ['dot1', 'dot2', 'dot3'], send_mod='copy'),
-        Dot('dot1', ['dot2']),
-        Dot('dot2')
+        Node('dot0', ['dot1', 'dot2', 'dot3'], send_mod='copy'),
+        Node('dot1', ['dot2']),
+        Node('dot2')
     ]
     dots2 = [
-        DotSet(dots),
-        Dot('dot3', )
+        NodeSet(dots),
+        Node('dot3', )
     ]
     for i in range(100):
-        DotSet(dots2).run(Frame(None, 'dot0'))
+        NodeSet(dots2).run(Frame(None, 'dot0'))
 
 
 
